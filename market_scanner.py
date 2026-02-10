@@ -39,6 +39,7 @@ class MarketScanner:
                             market = {
                                 "market_id": m.get("id"),
                                 "platform": "polymarket",
+                                "chain": "polygon",  # Polymarket trades on Polygon
                                 "title": m.get("title"),
                                 "description": m.get("description"),
                                 "yes_price": float(m.get("yes_price", 0.5)),
@@ -75,6 +76,7 @@ class MarketScanner:
                             market = {
                                 "market_id": m.get("id"),
                                 "platform": "kalshi",
+                                "chain": "solana",  # Kalshi trades on Solana (via DFlow)
                                 "title": m.get("title"),
                                 "description": m.get("description"),
                                 "yes_price": float(m.get("yes_price", 0.5)),
@@ -118,6 +120,7 @@ class MarketScanner:
         market_score = {
             "market_id": market["market_id"],
             "platform": market["platform"],
+            "chain": market.get("chain", "solana"),  # Include chain info
             "title": market["title"],
             "yes_price": market["yes_price"],
             "no_price": market["no_price"],

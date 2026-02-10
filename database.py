@@ -81,8 +81,30 @@ class TradingDatabase:
                 tx_hash TEXT,
                 status TEXT,  -- 'pending', 'confirmed', 'failed'
                 error_message TEXT,
+                chain TEXT,  -- 'solana' or 'polygon'
                 FOREIGN KEY(market_id) REFERENCES markets(market_id),
                 FOREIGN KEY(signal_id) REFERENCES signals(signal_id)
+            )
+        """
+        )
+
+        # Bridge transactions (cross-chain liquidity)
+        c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bridge_transactions (
+                bridge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_chain TEXT,  -- 'solana' or 'polygon'
+                to_chain TEXT,  -- 'solana' or 'polygon'
+                amount_usd REAL,
+                tx_hash TEXT UNIQUE,
+                status TEXT,  -- 'pending', 'confirmed', 'failed', 'timeout'
+                cost_usd REAL,
+                timestamp TIMESTAMP,
+                confirmed_at TIMESTAMP,
+                retry_count INTEGER DEFAULT 0,
+                associated_trade_id INTEGER,
+                error_message TEXT,
+                FOREIGN KEY(associated_trade_id) REFERENCES trades(trade_id)
             )
         """
         )
@@ -247,8 +269,8 @@ class TradingDatabase:
                 """
                 INSERT INTO trades (
                     market_id, signal_id, timestamp, side, amount_usd,
-                    entry_price, tx_hash, status, error_message
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    entry_price, tx_hash, status, error_message, chain
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     trade_data["market_id"],
@@ -260,6 +282,7 @@ class TradingDatabase:
                     trade_data.get("tx_hash"),
                     trade_data.get("status", "pending"),
                     trade_data.get("error_message"),
+                    trade_data.get("chain", "solana"),
                 ),
             )
             conn.commit()
@@ -267,6 +290,74 @@ class TradingDatabase:
         except Exception as e:
             print(f"[DB ERROR] Failed to add trade: {e}")
             return None
+        finally:
+            conn.close()
+
+    def add_bridge_transaction(self, bridge_data):
+        """Record a bridge transaction."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        try:
+            c.execute(
+                """
+                INSERT INTO bridge_transactions (
+                    from_chain, to_chain, amount_usd, tx_hash, status,
+                    cost_usd, timestamp, associated_trade_id, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    bridge_data["from_chain"],
+                    bridge_data["to_chain"],
+                    bridge_data["amount_usd"],
+                    bridge_data.get("tx_hash"),
+                    bridge_data.get("status", "pending"),
+                    bridge_data.get("cost_usd", 0),
+                    datetime.now().isoformat(),
+                    bridge_data.get("associated_trade_id"),
+                    bridge_data.get("error_message"),
+                ),
+            )
+            conn.commit()
+            return c.lastrowid
+        except Exception as e:
+            print(f"[DB ERROR] Failed to add bridge transaction: {e}")
+            return None
+        finally:
+            conn.close()
+
+    def update_bridge_transaction(self, tx_hash, status, confirmed_at=None, error_message=None):
+        """Update bridge transaction status."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+
+        try:
+            c.execute(
+                """
+                UPDATE bridge_transactions
+                SET status = ?, confirmed_at = ?, error_message = ?
+                WHERE tx_hash = ?
+            """,
+                (status, confirmed_at or datetime.now().isoformat(), error_message, tx_hash),
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"[DB ERROR] Failed to update bridge transaction: {e}")
+        finally:
+            conn.close()
+
+    def get_bridge_transactions(self, status=None):
+        """Fetch bridge transactions by status."""
+        conn = sqlite3.connect(self.db_path)
+        c = conn.cursor()
+        
+        try:
+            if status:
+                c.execute("SELECT * FROM bridge_transactions WHERE status = ?", (status,))
+            else:
+                c.execute("SELECT * FROM bridge_transactions")
+            rows = c.fetchall()
+            return rows
         finally:
             conn.close()
 
