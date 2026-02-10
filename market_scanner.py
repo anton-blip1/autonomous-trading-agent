@@ -1,186 +1,225 @@
 """
-Market Scanner - Fetches and scores markets from Polymarket and Kalshi.
-Updates every 5 seconds and returns top opportunities.
+Market Scanner - Fetch Kalshi + Polymarket prediction markets
+Shared across all users (same data for everyone)
+Uses synchronous code to run in background thread (no async issues)
 """
-import asyncio
-import aiohttp
+
+import time
 import requests
-import json
+from typing import List, Dict
 from datetime import datetime
-from typing import List, Dict, Optional
-from config import (
-    POLYMARKET_API_BASE,
-    KALSHI_API_BASE,
-    MIN_VOLUME_USD,
-    MIN_LIQUIDITY_USD,
-    SCAN_INTERVAL_SECONDS,
-)
-from database import db
+
+from config import Config
 
 
 class MarketScanner:
-    """Scans and scores prediction markets from multiple platforms."""
-
+    """Scan prediction markets from Kalshi + Polymarket."""
+    
     def __init__(self):
-        self.last_scan = None
-        self.market_cache = {}
-        self.scores = {}
-
-    async def scan_polymarket(self) -> List[Dict]:
-        """Fetch markets from Polymarket API."""
+        self.kalshi_url = Config.KALSHI_BASE_URL
+        self.polymarket_url = Config.POLYMARKET_BASE_URL
+        self.scan_interval = Config.MARKET_SCAN_INTERVAL_SECONDS
+        self.markets = []
+    
+    def fetch_kalshi_markets(self) -> List[Dict]:
+        """
+        Fetch weather + event markets from Kalshi.
+        
+        Kalshi focuses on:
+        - Weather (rain, snow, temperature)
+        - Sports
+        - Economics
+        
+        Returns:
+            List of markets
+        """
+        
         try:
-            url = f"{POLYMARKET_API_BASE}/markets?limit=100"
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=5) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        markets = []
-                        for m in data.get("data", []):
-                            market = {
-                                "market_id": m.get("id"),
-                                "platform": "polymarket",
-                                "chain": "polygon",  # Polymarket trades on Polygon
-                                "title": m.get("title"),
-                                "description": m.get("description"),
-                                "yes_price": float(m.get("yes_price", 0.5)),
-                                "no_price": float(m.get("no_price", 0.5)),
-                                "volume_usd": float(m.get("volume_24h", 0)),
-                                "liquidity_usd": float(
-                                    m.get("order_book", {}).get("depth", 0)
-                                ),
-                                "closes_at": m.get("end_date"),
-                                "status": m.get("active") and "open" or "closed",
-                                "category": m.get("category"),
-                            }
-                            if (
-                                market["volume_usd"] >= MIN_VOLUME_USD
-                                and market["liquidity_usd"] >= MIN_LIQUIDITY_USD
-                            ):
-                                markets.append(market)
-                        return markets
+            # Get active markets
+            url = f"{self.kalshi_url}/markets"
+            params = {
+                'limit': 50,
+                'status': 'active'
+            }
+            
+            resp = requests.get(url, params=params, timeout=10)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                markets = data.get('markets', [])
+                
+                print(f"[KALSHI] Fetched {len(markets)} markets")
+                
+                # Parse into standard format
+                formatted = []
+                for market in markets:
+                    formatted.append({
+                        'id': market.get('market_id'),
+                        'market_id': market.get('market_id'),
+                        'title': market.get('title', ''),
+                        'category': 'weather' if 'weather' in market.get('title', '').lower() else 'event',
+                        'platform': 'kalshi',
+                        'current_price': market.get('yes_price', 0.5),  # 0-1 scale
+                        'description': market.get('description', ''),
+                        'volume': market.get('volume_24h', 0),
+                        'expires_at': market.get('expiration_time'),
+                    })
+                
+                return formatted
+            else:
+                print(f"[KALSHI] Error: {resp.status_code}")
+                return []
+        
         except Exception as e:
-            print(f"[SCANNER] Polymarket fetch error: {e}")
+            print(f"[KALSHI] Exception: {e}")
             return []
-
-    async def scan_kalshi(self) -> List[Dict]:
-        """Fetch markets from Kalshi API."""
+    
+    def fetch_polymarket_markets(self) -> List[Dict]:
+        """
+        Fetch event prediction markets from Polymarket.
+        
+        Polymarket focuses on:
+        - Politics (elections, bills)
+        - Crypto (price targets, events)
+        - Sports
+        - General (misc. events)
+        
+        Returns:
+            List of markets
+        """
+        
         try:
-            url = f"{KALSHI_API_BASE}/markets"
-            params = {"status": "active", "limit": 100}
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, params=params, timeout=5) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        markets = []
-                        for m in data.get("markets", []):
-                            market = {
-                                "market_id": m.get("id"),
-                                "platform": "kalshi",
-                                "chain": "solana",  # Kalshi trades on Solana (via DFlow)
-                                "title": m.get("title"),
-                                "description": m.get("description"),
-                                "yes_price": float(m.get("yes_price", 0.5)),
-                                "no_price": float(m.get("no_price", 0.5)),
-                                "volume_usd": float(m.get("volume_24h", 0)),
-                                "liquidity_usd": float(m.get("liquidity", 0)),
-                                "closes_at": m.get("expiration_date"),
-                                "status": m.get("status"),
-                                "category": m.get("category"),
-                            }
-                            if (
-                                market["volume_usd"] >= MIN_VOLUME_USD
-                                and market["liquidity_usd"] >= MIN_LIQUIDITY_USD
-                            ):
-                                markets.append(market)
-                        return markets
+            # Get active markets
+            url = f"{self.polymarket_url}/markets"
+            params = {
+                'limit': 50,
+                'status': 'active'
+            }
+            
+            resp = requests.get(url, params=params, timeout=10)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                markets = data if isinstance(data, list) else data.get('markets', [])
+                
+                print(f"[POLYMARKET] Fetched {len(markets)} markets")
+                
+                # Parse into standard format
+                formatted = []
+                for market in markets:
+                    # Determine category
+                    title = market.get('title', '').lower()
+                    if 'trump' in title or 'biden' in title or 'election' in title:
+                        category = 'politics'
+                    elif 'bitcoin' in title or 'ethereum' in title or 'crypto' in title:
+                        category = 'crypto'
+                    elif 'nfl' in title or 'nba' in title or 'world cup' in title:
+                        category = 'sports'
+                    else:
+                        category = 'event'
+                    
+                    formatted.append({
+                        'id': market.get('market_id', market.get('id')),
+                        'market_id': market.get('market_id', market.get('id')),
+                        'title': market.get('title', ''),
+                        'category': category,
+                        'platform': 'polymarket',
+                        'current_price': market.get('bid', 0.5),  # 0-1 scale
+                        'description': market.get('description', ''),
+                        'volume': market.get('volume_24h', 0),
+                        'expires_at': market.get('expiration_date'),
+                    })
+                
+                return formatted
+            else:
+                print(f"[POLYMARKET] Error: {resp.status_code}")
+                return []
+        
         except Exception as e:
-            print(f"[SCANNER] Kalshi fetch error: {e}")
+            print(f"[POLYMARKET] Exception: {e}")
             return []
-
-    def calculate_spread(self, yes_price: float, no_price: float) -> float:
-        """Calculate bid-ask spread as percentage."""
-        if yes_price == 0 or no_price == 0:
-            return 100.0
-        return abs(yes_price - no_price) / ((yes_price + no_price) / 2)
-
-    def score_market(
-        self, market: Dict, fair_value: float = None
-    ) -> Dict:
-        """Score a market based on liquidity, volume, and spread."""
-        spread = self.calculate_spread(market["yes_price"], market["no_price"])
-
-        # Score components (0-100 each)
-        volume_score = min(market["volume_usd"] / 10000, 100)  # 0-100 based on $10k volume
-        liquidity_score = min(market["liquidity_usd"] / 1000, 100)  # 0-100 based on $1k depth
-        spread_score = max(100 - (spread * 100), 0)  # Lower spread = higher score
-
-        # Weighted average (volume + liquidity + spread)
-        overall_score = (volume_score * 0.4 + liquidity_score * 0.4 + spread_score * 0.2)
-
-        market_score = {
-            "market_id": market["market_id"],
-            "platform": market["platform"],
-            "chain": market.get("chain", "solana"),  # Include chain info
-            "title": market["title"],
-            "yes_price": market["yes_price"],
-            "no_price": market["no_price"],
-            "spread": spread,
-            "volume_score": volume_score,
-            "liquidity_score": liquidity_score,
-            "spread_score": spread_score,
-            "overall_score": overall_score,
-            "scored_at": datetime.now().isoformat(),
-        }
-
-        return market_score
-
-    async def scan_all_markets(self) -> List[Dict]:
-        """Scan both Polymarket and Kalshi, score, and return top opportunities."""
-        print(f"[SCANNER] Starting market scan at {datetime.now().isoformat()}")
-
-        # Fetch from both platforms in parallel
-        poly_markets, kalshi_markets = await asyncio.gather(
-            self.scan_polymarket(), self.scan_kalshi()
-        )
-
-        all_markets = poly_markets + kalshi_markets
-        print(f"[SCANNER] Found {len(all_markets)} qualifying markets")
-
-        # Score and rank markets
-        scored = [self.score_market(m) for m in all_markets]
-        scored.sort(key=lambda x: x["overall_score"], reverse=True)
-
-        # Store in cache
-        for market in all_markets:
-            self.market_cache[market["market_id"]] = market
-            db.add_market(market)
-
-        self.last_scan = datetime.now()
-        return scored[:20]  # Return top 20 opportunities
-
-    def get_market_by_id(self, market_id: str) -> Optional[Dict]:
-        """Fetch a specific market from cache or API."""
-        if market_id in self.market_cache:
-            return self.market_cache[market_id]
-
-        # TODO: Fetch from API if not in cache
+    
+    def scan_all_markets(self) -> List[Dict]:
+        """
+        Fetch all markets from all platforms.
+        
+        Returns:
+            Combined list of markets
+        """
+        
+        # Fetch sequentially (no async in thread)
+        kalshi_markets = self.fetch_kalshi_markets()
+        poly_markets = self.fetch_polymarket_markets()
+        
+        all_markets = kalshi_markets + poly_markets
+        
+        print(f"[SCANNER] Total markets: {len(all_markets)}")
+        
+        self.markets = all_markets
+        return all_markets
+    
+    def get_market_page(self, page: int = 1, category: str = None) -> List[Dict]:
+        """
+        Get markets with pagination.
+        
+        Args:
+            page: Page number (1-indexed)
+            category: Optional category filter (weather, politics, crypto, event, etc)
+        
+        Returns:
+            List of markets for page
+        """
+        
+        # Filter by category if specified
+        if category:
+            filtered_markets = [m for m in self.markets if m['category'] == category]
+        else:
+            filtered_markets = self.markets
+        
+        # Pagination
+        page_size = 5
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        
+        return filtered_markets[start_idx:end_idx]
+    
+    def get_total_pages(self, category: str = None) -> int:
+        """Get total pages for category."""
+        
+        if category:
+            filtered = [m for m in self.markets if m['category'] == category]
+        else:
+            filtered = self.markets
+        
+        page_size = 5
+        return (len(filtered) + page_size - 1) // page_size
+    
+    def get_market_by_id(self, market_id: str) -> Dict:
+        """Get specific market by ID."""
+        
+        for market in self.markets:
+            if market['id'] == market_id or market['market_id'] == market_id:
+                return market
+        
         return None
-
-    async def run_continuous(self):
-        """Run scanner continuously."""
-        print("[SCANNER] Starting continuous market scanning...")
+    
+    def start_continuous_scan(self):
+        """
+        Start background task to continuously scan markets.
+        Updates database every N seconds.
+        Runs in a thread (synchronous, no async).
+        """
+        
         while True:
             try:
-                opportunities = await self.scan_all_markets()
-                print(f"[SCANNER] Top opportunities found: {len(opportunities)}")
-                for i, opp in enumerate(opportunities[:5]):
-                    print(
-                        f"  {i+1}. {opp['title'][:50]} - Score: {opp['overall_score']:.1f}"
-                    )
+                print(f"[SCANNER] Scanning markets...")
+                self.scan_all_markets()
+                print(f"[SCANNER] Next scan in {self.scan_interval}s")
+                time.sleep(self.scan_interval)
             except Exception as e:
-                print(f"[SCANNER ERROR] {e}")
-            await asyncio.sleep(SCAN_INTERVAL_SECONDS)
+                print(f"[SCANNER] Error: {e}")
+                time.sleep(self.scan_interval)
 
 
-# Global scanner instance
-scanner = MarketScanner()
+# Global instance
+market_scanner = MarketScanner()
