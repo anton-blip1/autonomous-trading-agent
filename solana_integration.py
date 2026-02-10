@@ -6,8 +6,9 @@ import os
 import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
+import secrets
 from solders.keypair import Keypair
-from solders.pubkey import PublicKey
+from solders.pubkey import Pubkey
 from solders.rpc.requests import GetBalance
 from solders.transaction import Transaction
 from solders.instruction import Instruction
@@ -37,16 +38,18 @@ class SolanaWallet:
         if self.keypair_path.exists():
             with open(self.keypair_path, 'r') as f:
                 data = json.load(f)
-                self.keypair = Keypair.from_secret_key(bytes(data['secret']))
+                seed_bytes = bytes(data['seed'])
+                self.keypair = Keypair.from_seed(seed_bytes)
         else:
-            # Create new keypair
-            self.keypair = Keypair.generate()
-            secret_list = list(self.keypair.secret)
+            # Create new keypair with 32-byte seed
+            seed_bytes = secrets.token_bytes(32)
+            self.keypair = Keypair.from_seed(seed_bytes)
+            seed_list = list(seed_bytes)
             with open(self.keypair_path, 'w') as f:
-                json.dump({'secret': secret_list}, f)
-            print(f"[WALLET] Created new keypair: {self.keypair.public_key}")
+                json.dump({'seed': seed_list}, f)
+            print(f"[WALLET] Created new keypair: {self.keypair.pubkey()}")
         
-        self.public_key = self.keypair.public_key
+        self.public_key = str(self.keypair.pubkey())
 
     def get_address(self) -> str:
         """Get wallet public address."""

@@ -11,6 +11,8 @@ load_dotenv()
 
 # ===== API KEYS & CREDENTIALS =====
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "mixtral-8x7b-32768")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 SOLANA_PRIVATE_KEY = os.getenv("SOLANA_PRIVATE_KEY", "")
 
@@ -27,6 +29,17 @@ KALSHI_PASSWORD = os.getenv("KALSHI_PASSWORD", "")
 SOLANA_RPC_URL = "https://api.devnet.solana.com"
 SOLANA_COMMITMENT = "confirmed"
 SOLANA_NETWORK = "devnet"
+
+# ===== POLYGON CONFIG =====
+POLYGON_RPC_URL = os.getenv("POLYGON_RPC_URL", "https://rpc-mumbai.maticvigil.com")
+POLYGON_CHAIN_ID = 80001  # Mumbai testnet
+POLYGON_USDC_CONTRACT = os.getenv("POLYGON_USDC_CONTRACT", "0x0FA8781a83E46826621b3BC094Ea8A0fd5D5EC8c")
+POLYGON_PRIVATE_KEY = os.getenv("POLYGON_PRIVATE_KEY", "")
+
+# ===== WORMHOLE BRIDGE CONFIG =====
+WORMHOLE_RPC_ENDPOINT = os.getenv("WORMHOLE_RPC_ENDPOINT", SOLANA_RPC_URL)
+BRIDGE_TIMEOUT_SECONDS = int(os.getenv("BRIDGE_TIMEOUT_SECONDS", "300"))
+BRIDGE_RETRY_ATTEMPTS = int(os.getenv("BRIDGE_RETRY_ATTEMPTS", "3"))
 
 # ===== DATABASE CONFIG =====
 DB_PATH = Path(__file__).parent / "data" / "trading.db"
