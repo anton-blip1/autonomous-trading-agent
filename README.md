@@ -1,6 +1,6 @@
-# Prediction Markets Trading Bot (Kalshi + Polymarket)
+# Anton - Autonomous Prediction Markets Trading Agent on Solana
 
-Autonomous AI trading agent for prediction markets with non-custodial wallet support.
+Non-custodial AI trading agent for Solana prediction markets (Kalshi weather markets via DFlow bridge).
 
 ## Quick Start (5 minutes)
 
@@ -24,47 +24,49 @@ python main.py
 
 ## Architecture
 
-### 3-Layer System
+### 3-Layer System (Solana-Native)
 
 ```
-Layer 1: Market Discovery
-├─ Kalshi API (weather markets)
-├─ Polymarket API (event markets)
+Layer 1: Market Discovery (Solana)
+├─ Kalshi API via DFlow bridge (weather markets)
+├─ NOAA data integration (forecast accuracy)
 └─ Pagination: browse markets [NEXT] [NEXT] [NEXT]
 
-Layer 2: Shared Insights
-├─ Groq LLM analyzes each market
+Layer 2: Shared Insights (Groq LLM)
+├─ Fair value estimation + arbitrage detection
 ├─ All users see same analysis
-└─ Fair value + opportunity detection
+└─ Weather accuracy scoring
 
-Layer 3: Per-User Trading
-├─ Each user has encrypted Solana keypair
-├─ Users approve trades in Telegram
+Layer 3: Per-User Trading (Non-Custodial Solana)
+├─ Per-user Solana ED25519 keypair
+├─ AES-256 encryption (keys encrypted at rest)
+├─ Users approve trades via Telegram
 ├─ Bot signs with user's key (non-custodial)
-└─ Trade history + P&L per user
+└─ Trade history + P&L via Solana ledger
 ```
 
 ## Features
 
-### Non-Custodial Wallets
-- ✅ Per-user Solana keypairs
-- ✅ AES-256 encryption
-- ✅ Users control keys at all times
-- ✅ Can export + import to other wallets
+### Non-Custodial Solana Wallet Management
+- ✅ Per-user ED25519 keypair generation
+- ✅ AES-256 Fernet encryption (keys encrypted at rest)
+- ✅ Users retain control (bot never holds unencrypted keys)
+- ✅ DFlow integration for Kalshi trading
+- ✅ Transaction signing via user's key (non-custodial)
 
-### Market Discovery
-- ✅ 100+ prediction markets
-- ✅ Kalshi (weather)
-- ✅ Polymarket (events)
-- ✅ Pagination support
-- ✅ Category filtering
+### Kalshi Weather Markets (Solana)
+- ✅ Real-time market discovery (60-second scan intervals)
+- ✅ NOAA weather data + forecast accuracy
+- ✅ 50+ active weather markets (low competition edge)
+- ✅ Fair value analysis via Groq LLM
+- ✅ Arbitrage opportunity detection (>10% misprice)
 
-### Autonomous Trading
-- ✅ Shared insights (Groq analysis)
-- ✅ Per-user strategies
-- ✅ Manual trade execution
-- ✅ Non-custodial signing
-- ✅ Trade history + performance
+### Autonomous Trading on Solana
+- ✅ Groq LLM market analysis + fair value estimation
+- ✅ Kelly criterion position sizing
+- ✅ Non-custodial execution (signs with user's key)
+- ✅ Solana transaction broadcasting
+- ✅ Performance tracking + P&L reporting
 
 ### Security
 - ✅ Encrypted private keys

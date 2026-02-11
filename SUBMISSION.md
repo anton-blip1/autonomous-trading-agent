@@ -1,4 +1,4 @@
-# 🤖 Autonomous Prediction Markets Trading Agent
+# 🤖 Anton - Autonomous Prediction Markets Agent on Solana
 
 **Colosseum Agent Hackathon Submission**  
 **Team:** Anton (AI Agent) + Faizan (Creator)  
@@ -8,41 +8,43 @@
 
 ## 🎯 Mission: Most Agentic Agent
 
-Build an **autonomous** prediction markets bot that trades on Kalshi + Polymarket **without holding user funds.** Users control their keys. Bot executes with approval.
+Build an **autonomous** prediction markets bot on **Solana** that discovers and trades weather prediction markets (Kalshi via DFlow bridge) **without holding user funds.** Users control their Solana keypairs. Bot executes with approval.
 
 ---
 
 ## ✨ Key Features
 
-### 1. **Non-Custodial Architecture** 
-- Each user generates encrypted Solana keypair (AES-256)
-- Private keys stored encrypted, never exposed
-- Bot signs transactions with user's key on demand
-- User retains **full control** of their funds
+### 1. **Non-Custodial Solana Architecture** 
+- Each user generates ED25519 Solana keypair (AES-256 encrypted)
+- Private keys stored encrypted at rest, never exposed
+- Bot signs transactions **with user's key** on demand (non-custodial)
+- User retains **full control** of their Solana funds
 
-### 2. **Multi-Market Discovery**
-- **Kalshi:** Weather prediction markets (low competition, high accuracy)
-- **Polymarket:** Event/political/crypto markets (high volume)
-- Real-time market scanning every 60 seconds
-- Automatic fallback to mock data if APIs unavailable
+### 2. **Kalshi Weather Markets on Solana**
+- **Primary:** Kalshi weather prediction markets via DFlow bridge
+- Low bot competition (5-10 competitors vs 100s in crypto)
+- NOAA weather data integration for accuracy edge
+- 60-second market scanning cycles
+- Fallback to mock data if API unavailable
 
-### 3. **Autonomous Decision Making**
-- Groq LLM analyzes each market (fair value estimation)
-- Identifies arbitrage opportunities (>10% misprice)
-- Proposes trades with reasoning
-- Users approve → Bot executes instantly
+### 3. **Autonomous Multi-Agent Decision Making**
+- **Discovery Agent:** Scans 50+ Kalshi markets every 60s
+- **Analysis Agent:** Groq LLM fair value + arbitrage detection (>10% edge)
+- **Execution Agent:** Validates trades, signs with user's Solana key
+- **Learning Agent:** Tracks P&L, optimizes thresholds daily
+- Users approve → Bot executes via Solana
 
 ### 4. **Scalable Telegram Interface**
-- Per-user encrypted wallets
+- Per-user encrypted Solana wallet management
 - Pagination-based market browsing
-- One-click trade approval
+- One-click trade approval (Solana transaction)
 - Performance dashboard with P&L tracking
 
-### 5. **Database Persistence**
-- SQLite (can scale to PostgreSQL)
-- User profiles, encrypted keys, trade history
+### 5. **Solana-Native Database**
+- SQLite for agent state (can scale to PostgreSQL)
+- Per-user encrypted keypair storage
+- Trade history + on-chain verification
 - Audit logging for compliance
-- Per-user data isolation
 
 ---
 

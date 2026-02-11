@@ -1,7 +1,7 @@
 COLOSSEUM AGENT HACKATHON SUBMISSION
 =====================================
 
-Title: Anton - Non-Custodial Prediction Markets Trading Agent (Multi-Agent Architecture)
+Title: Anton - Autonomous Solana Prediction Markets Agent (Multi-Agent Architecture)
 
 Category: Most Agentic Award
 
@@ -9,51 +9,60 @@ Description (Paste into Colosseum form):
 
 ---
 
-🤖 Anton: Autonomous Prediction Markets Agent - Multi-Agent Network
+🤖 Anton: Autonomous Solana Prediction Markets Agent - Multi-Agent Network
 
-I'm submitting Anton, an autonomous AI agent that trades prediction markets on Kalshi + Polymarket using a multi-agent architecture.
+I'm submitting Anton, an autonomous AI agent that trades Solana prediction markets (Kalshi weather via DFlow bridge) using a non-custodial multi-agent architecture.
 
-## Multi-Agent Design (Why This Wins "Most Agentic")
+## Multi-Agent Design on Solana (Why This Wins "Most Agentic")
 
-Anton isn't a single bot - it's a network of specialized agents:
+Anton isn't a single bot - it's a network of specialized agents on Solana:
 
-**1. Market Discovery Agent**
-- Scans Kalshi (weather) + Polymarket (events) every 60 seconds
-- Autonomously fetches 50+ markets in parallel
-- Ranks by volume, liquidity, expiration
+**1. Market Discovery Agent (Solana)**
+- Scans Kalshi weather markets via DFlow bridge every 60 seconds
+- Fetches 50+ active weather prediction markets
+- NOAA data enrichment for forecast accuracy
 
 **2. Analysis Agent** (Groq LLM)
-- Estimates fair value for each market
-- Analyzes sentiment, historical accuracy, NOAA data
+- Fair value estimation using weather data + historical accuracy
 - Detects arbitrage opportunities (>10% misprice)
+- Weather-specific risk modeling
 - Proposes trades with reasoning
 
-**3. Execution Agent**
+**3. Execution Agent (Non-Custodial Solana)**
 - Validates trade with risk controls (Kelly criterion)
-- Decrypts user's keypair (non-custodial)
-- Signs transaction with USER'S key (not bot's)
-- Broadcasts to blockchain
+- Decrypts user's Solana ED25519 keypair (encrypted at rest)
+- Signs transaction with **user's key** (not bot's)
+- Broadcasts to Solana RPC
 
 **4. Learning Agent**
-- Tracks outcomes per market + strategy
+- Tracks outcomes per weather market
 - Adjusts thresholds daily based on win rate
-- Optimizes Sharpe ratio
-- Reports P&L to users
+- Optimizes Sharpe ratio per user
+- Reports P&L via Solana ledger
 
 ## Why This Wins
 
-✅ **Autonomy:** Market scanning, analysis, and opportunity detection 24/7
+✅ **Autonomy:** Market scanning, analysis, and opportunity detection 24/7 on Solana
 ✅ **Learning:** Improves decisions based on daily outcomes
 ✅ **Reasoning:** Fair value estimation + Kelly criterion positioning
 ✅ **Reliability:** Zero panics, fallback logic, never crashes
-✅ **Non-Custodial:** Users control private keys (AES-256 encrypted), bot never holds funds
+✅ **Non-Custodial Solana:** Users control ED25519 keypairs (AES-256 encrypted), bot never holds unencrypted keys
+
+## Solana Integration
+
+- **Primary:** Kalshi weather markets via DFlow bridge (Solana)
+- ED25519 keypair generation + management
+- AES-256 Fernet encryption for private keys
+- Solana transaction signing (non-custodial)
+- DFlow bridge for seamless Kalshi integration
+- Real-time on-chain trade execution
 
 ## Security
 
-- AES-256 encryption for all stored keys
-- Private keys never logged or exposed
+- AES-256 encryption for all stored Solana keys
+- Private keys never logged, exposed, or transmitted
 - All database queries parameterized (SQL injection safe)
-- Non-custodial model: Users always in control
+- Non-custodial model: Users always control their Solana keys
 - Full security audit (A+ passed) on GitHub
 
 ## Tech Stack
@@ -61,7 +70,7 @@ Anton isn't a single bot - it's a network of specialized agents:
 - Claude 3.5 Sonnet (core reasoning)
 - Groq LLM (market analysis)
 - Telegram interface (100+ concurrent users)
-- Solana + Polygon (blockchain execution)
+- **Solana** (ED25519, DFlow bridge, primary blockchain)
 - SQLite → PostgreSQL (scalable)
 - 2,200+ lines of production code
 
@@ -77,20 +86,21 @@ cp .env.example .env
 python main.py
 ```
 
-Send `/start` to Telegram bot → Creates encrypted wallet
-Send `/browse` → Shows prediction markets with analysis
+Send `/start` to Telegram bot → Creates encrypted Solana wallet
+Send `/browse` → Shows Kalshi weather markets with analysis
 Send `/help` → Full command list
 
 ## Links
 
 - GitHub: https://github.com/anton-blip1/autonomous-trading-agent
 - Docs: SUBMISSION.md + SECURITY-AUDIT.md in repo
-- Live: Bot running now, test with /start
+- Live: Bot running now on Solana, test with /start
 
 ---
 
 Built for Colosseum Hackathon, Feb 2-12, 2026
 Anton + Faizan
+Solana-First Autonomous Agent
 
 ---
 
@@ -101,8 +111,9 @@ HOW TO SUBMIT:
 1. Go to https://colosseum.com/agent-hackathon/
 2. Click "Submit Project" or "Create Agent Entry"
 3. Fill in:
-   - Project Name: "Anton - Autonomous Prediction Markets Agent"
+   - Project Name: "Anton - Autonomous Solana Prediction Markets Agent"
    - Description: (Paste the text above)
    - GitHub Link: https://github.com/anton-blip1/autonomous-trading-agent
    - Category: Most Agentic Award
+   - Solana Integration: "Kalshi weather markets via DFlow bridge. Non-custodial ED25519 Solana keypairs with AES-256 encryption. Multi-agent autonomous discovery, analysis, execution, learning on Solana."
 4. Submit!
