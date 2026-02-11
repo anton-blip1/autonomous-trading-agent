@@ -57,8 +57,8 @@ class WalletManager:
         print(f"[WALLET] Public: {solana_public_key}")
         
         # Encrypt private key (user retains control)
-        private_key_bytes = bytes(keypair.secret_key)
-        encrypted_private_key = self.encryption.encrypt_private_key(private_key_bytes)
+        # Store only the 32-byte seed, which is sufficient to reconstruct the keypair
+        encrypted_private_key = self.encryption.encrypt_private_key(seed_bytes)
         
         print(f"[WALLET] Encrypted private key")
         
