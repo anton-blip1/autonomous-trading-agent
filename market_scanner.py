@@ -50,14 +50,14 @@ class MarketScanner:
                 
                 print(f"[KALSHI] Fetched {len(markets)} markets")
                 
-                # Parse into standard format
+                # Parse into standard format (NO filtering—fetch all)
                 formatted = []
                 for market in markets:
                     formatted.append({
                         'id': market.get('market_id'),
                         'market_id': market.get('market_id'),
                         'title': market.get('title', ''),
-                        'category': 'weather' if 'weather' in market.get('title', '').lower() else 'event',
+                        'category': self._infer_category(market.get('title', '')),
                         'platform': 'kalshi',
                         'current_price': market.get('yes_price', 0.5),  # 0-1 scale
                         'description': market.get('description', ''),
@@ -104,25 +104,14 @@ class MarketScanner:
                 
                 print(f"[POLYMARKET] Fetched {len(markets)} markets")
                 
-                # Parse into standard format
+                # Parse into standard format (NO filtering—fetch all)
                 formatted = []
                 for market in markets:
-                    # Determine category
-                    title = market.get('title', '').lower()
-                    if 'trump' in title or 'biden' in title or 'election' in title:
-                        category = 'politics'
-                    elif 'bitcoin' in title or 'ethereum' in title or 'crypto' in title:
-                        category = 'crypto'
-                    elif 'nfl' in title or 'nba' in title or 'world cup' in title:
-                        category = 'sports'
-                    else:
-                        category = 'event'
-                    
                     formatted.append({
                         'id': market.get('market_id', market.get('id')),
                         'market_id': market.get('market_id', market.get('id')),
                         'title': market.get('title', ''),
-                        'category': category,
+                        'category': self._infer_category(market.get('title', '')),
                         'platform': 'polymarket',
                         'current_price': market.get('bid', 0.5),  # 0-1 scale
                         'description': market.get('description', ''),
@@ -202,6 +191,34 @@ class MarketScanner:
                 return market
         
         return None
+    
+    def _infer_category(self, title: str) -> str:
+        """Infer market category from title (for metadata only, not filtering)."""
+        
+        title_lower = title.lower()
+        
+        # Weather indicators
+        if any(w in title_lower for w in ['weather', 'snow', 'rain', 'temperature', 'storm', 'wind', 'frost']):
+            return 'weather'
+        
+        # Politics indicators
+        if any(p in title_lower for p in ['election', 'trump', 'biden', 'vote', 'senate', 'congress', 'bill']):
+            return 'politics'
+        
+        # Crypto indicators
+        if any(c in title_lower for c in ['bitcoin', 'ethereum', 'btc', 'eth', 'crypto', 'defi', 'nft']):
+            return 'crypto'
+        
+        # Sports indicators
+        if any(s in title_lower for s in ['nfl', 'nba', 'world cup', 'super bowl', 'world series', 'championship']):
+            return 'sports'
+        
+        # Economics indicators
+        if any(e in title_lower for e in ['inflation', 'unemployment', 'gdp', 'fed', 'interest rate']):
+            return 'economics'
+        
+        # Default to 'event'
+        return 'event'
     
     def start_continuous_scan(self):
         """
