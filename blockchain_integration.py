@@ -12,7 +12,15 @@ import base64
 from datetime import datetime
 
 from solders.keypair import Keypair
-from web3 import Web3
+
+# Try to import web3 for Polygon support, but don't fail if it's not available
+try:
+    from web3 import Web3
+    POLYGON_SUPPORTED = True
+except (ModuleNotFoundError, ImportError) as e:
+    print(f"[WARN] Polygon support disabled (web3 import failed): {e}")
+    POLYGON_SUPPORTED = False
+    Web3 = None
 
 from config import (
     SOLANA_RPC_URL,
@@ -122,6 +130,9 @@ class PolygonWallet:
     """Non-custodial Polygon wallet manager for Mumbai testnet."""
 
     def __init__(self, keypair_path: str = None):
+        if not POLYGON_SUPPORTED:
+            raise RuntimeError("Polygon wallet not supported (web3 not available). Use Solana only.")
+        
         self.rpc_url = POLYGON_RPC_URL
         self.chain_id = POLYGON_CHAIN_ID
         self.chain = "polygon"
@@ -195,8 +206,17 @@ class TradeExecutor:
 
     def __init__(self):
         self.solana_wallet = SolanaWallet()
-        self.polygon_wallet = PolygonWallet()
+        self.polygon_wallet = None
         self.transactions = {}
+        
+        # Try to initialize Polygon wallet, but don't fail if web3 is not available
+        if POLYGON_SUPPORTED:
+            try:
+                self.polygon_wallet = PolygonWallet()
+            except Exception as e:
+                print(f"[WARN] Polygon wallet initialization failed: {e}. Using Solana only.")
+        else:
+            print("[INFO] Polygon support disabled. Using Solana only.")
 
     def create_solana_trade(
         self,
@@ -239,6 +259,10 @@ class TradeExecutor:
         price: float
     ) -> Optional[Dict]:
         """Create a trade transaction for Polygon (Polymarket)."""
+        if not self.polygon_wallet:
+            print("[TX ERROR] Polygon wallet not available. Polymarket trading disabled.")
+            return None
+        
         try:
             trade = {
                 "market_id": market_id,
@@ -290,6 +314,9 @@ class TradeExecutor:
             chain = trade.get('chain', 'solana')
             
             if chain == 'polygon':
+                if not self.polygon_wallet:
+                    print("[TX ERROR] Polygon wallet not available. Cannot submit trade.")
+                    return None
                 # Check Polygon balance
                 balance = self.polygon_wallet.get_balance()
                 if balance < trade['amount_usd']:
@@ -326,21 +353,27 @@ class TradeExecutor:
 
     def get_dual_wallet_status(self) -> Dict:
         """Get status of both wallets."""
-        return {
+        status = {
             "solana": {
                 "address": self.solana_wallet.get_address(),
                 "balance_sol": self.solana_wallet.get_balance(),
                 "chain": "solana",
                 "network": SOLANA_NETWORK
-            },
-            "polygon": {
+            }
+        }
+        
+        if self.polygon_wallet:
+            status["polygon"] = {
                 "address": self.polygon_wallet.get_address(),
                 "balance_usdc": self.polygon_wallet.get_balance(),
                 "chain": "polygon",
                 "chain_id": POLYGON_CHAIN_ID,
                 "network": "mumbai"
             }
-        }
+        else:
+            status["polygon"] = {"status": "disabled", "reason": "web3 not available"}
+        
+        return status
 
 
 # Global instances

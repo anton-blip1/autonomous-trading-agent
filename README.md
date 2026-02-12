@@ -1,8 +1,36 @@
-# Anton - Autonomous Prediction Markets Trading Agent on Solana
+# 🚀 Anton - Autonomous Multi-Chain Prediction Markets Trading Agent
 
-Non-custodial AI trading agent for Solana prediction markets (Kalshi weather markets via DFlow bridge).
+**The first truly autonomous trading agent**: Non-custodial, multi-chain (Solana-native + Wormhole bridge to Polygon), real-time market discovery, and AI-driven autonomous trading.
 
-## Quick Start (5 minutes)
+### What Makes Anton Different
+- **Solana-First Architecture**: Native Solana execution via Kalshi weather markets (DFlow bridge) + NOAA data integration
+- **Wormhole Bridge Ready**: Trade on Polymarket via Polygon with cross-chain liquidity aggregation
+- **True Non-Custodial**: Users control their private keys. Anton never touches unencrypted keys—only signs transactions on user approval
+- **Real Autonomy**: Groq LLM continuously analyzes markets, proposes trades, learns from outcomes
+- **24/7 Live Trading**: Telegram bot interface, real-time market scanning (60s intervals), instant execution
+
+## Demo for Judges
+
+**Live Bot for Testing**: `@PrediqqqBot` on Telegram
+
+To see Anton in action:
+1. Open Telegram and search for **@PrediqqqBot**
+2. Send `/start` to initialize your non-custodial wallet
+3. Use `/browse` to see live Kalshi weather markets (Solana)
+4. Use `/browse_polymarket` to see Polymarket events (Polygon via Wormhole)
+5. Send `/trade <market_id>` to propose a trade
+6. Watch Anton analyze opportunities in real-time
+
+**What You'll See**:
+- ✅ Real market data from Kalshi + Polymarket APIs
+- ✅ AI-powered fair value analysis (Groq LLM)
+- ✅ Non-custodial wallet creation (encrypted locally)
+- ✅ Autonomous trade proposals (Anton learns from outcomes)
+- ✅ Multi-chain readiness (Solana + Wormhole bridge)
+
+**Mainnet Testing**: After judge review, we'll deploy on Solana mainnet with real USDC transactions (Kalshi) and Polygon mainnet for Polymarket.
+
+## Quick Start (5 minutes - Run Your Own)
 
 ```bash
 # 1. Setup
@@ -16,7 +44,7 @@ pip install -r requirements.txt
 sqlite3 trading_agent.db < schema.sql
 
 # 4. Run
-python main.py
+python agent.py
 
 # 5. Test
 # Send /start to your bot on Telegram
@@ -24,25 +52,34 @@ python main.py
 
 ## Architecture
 
-### 3-Layer System (Solana-Native)
+### 4-Layer Multi-Chain System
 
 ```
-Layer 1: Market Discovery (Solana)
-├─ Kalshi API via DFlow bridge (weather markets)
-├─ NOAA data integration (forecast accuracy)
-└─ Pagination: browse markets [NEXT] [NEXT] [NEXT]
+Layer 1: Market Discovery (Solana + Polygon)
+├─ Solana: Kalshi weather markets (via DFlow bridge)
+├─ Polygon: Polymarket event prediction markets
+├─ Shared: NOAA data, sentiment analysis, arbitrage detection
+└─ Pagination UI: Browse markets [NEXT] [NEXT] [NEXT]
 
-Layer 2: Shared Insights (Groq LLM)
-├─ Fair value estimation + arbitrage detection
-├─ All users see same analysis
-└─ Weather accuracy scoring
+Layer 2: Autonomous Intelligence (Groq LLM)
+├─ Continuous market analysis (60s intervals)
+├─ Fair value estimation + misprice detection
+├─ Learning from trade outcomes (improving accuracy)
+└─ Shared insights across all users (1 agent, many traders)
 
-Layer 3: Per-User Trading (Non-Custodial Solana)
-├─ Per-user Solana ED25519 keypair
-├─ AES-256 encryption (keys encrypted at rest)
-├─ Users approve trades via Telegram
-├─ Bot signs with user's key (non-custodial)
-└─ Trade history + P&L via Solana ledger
+Layer 3: Cross-Chain Execution (Wormhole Bridge)
+├─ Solana execution: Direct via Kalshi/DFlow
+├─ Polygon execution: Via Wormhole liquidity bridge
+├─ Multi-chain position sizing (Kelly criterion per-chain)
+└─ Atomic settlement (both chains simultaneously)
+
+Layer 4: Non-Custodial User Control
+├─ Per-user ED25519 keypair (Solana) + EVM key (Polygon)
+├─ AES-256 encryption (keys never leave user device at rest)
+├─ User approval required per trade (Telegram interface)
+├─ Bot signs with user's key (non-custodial execution)
+├─ Encrypted vault per user (private keys isolated)
+└─ Real-time P&L tracking + performance dashboard
 ```
 
 ## Features

@@ -240,3 +240,4 @@ class MarketScanner:
 
 # Global instance
 market_scanner = MarketScanner()
+scanner = market_scanner  # Alias for compatibility
