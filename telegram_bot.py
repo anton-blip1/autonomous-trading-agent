@@ -15,6 +15,7 @@ from wallet_manager import wallet_manager
 from market_scanner import market_scanner
 from database import db
 from config import Config
+from wormhole_bridge_production import wormhole_bridge
 
 
 class BotHandlers:
@@ -200,12 +201,18 @@ class BotHandlers:
         
         await update.message.reply_text(
             f"📚 **COMMANDS**\n\n"
+            f"**Wallet & Setup:**\n"
             f"/start - Create wallet\n"
-            f"/browse - Browse markets\n"
             f"/balance - Check balance\n"
-            f"/trade - Execute trade\n"
-            f"/performance - View stats\n"
-            f"/help - This message"
+            f"/performance - View trading stats\n\n"
+            f"**Trading:**\n"
+            f"/browse - Browse markets\n"
+            f"/trade - Execute trade\n\n"
+            f"**Cross-Chain:**\n"
+            f"/bridge - Bridge SOL → Polygon\n"
+            f"/bridge-status - Check bridge status\n\n"
+            f"/help - This message\n\n"
+            f"💡 All addresses are copyable (just tap them)"
         )
     
     @staticmethod
@@ -230,6 +237,92 @@ class BotHandlers:
             f"P&L: $0.00\n\n"
             f"Use /trade to start trading"
         )
+    
+    @staticmethod
+    async def bridge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        /bridge - Bridge SOL to Polygon via Wormhole.
+        Converts SOL to USDC on Polygon mainnet.
+        """
+        
+        user_id = update.effective_user.id
+        
+        user = db.get_user(user_id)
+        if not user:
+            await update.message.reply_text("Please use /start first")
+            return
+        
+        # Get dynamic fees
+        fees = await wormhole_bridge.get_dynamic_fees()
+        
+        await update.message.reply_text(
+            f"🌉 **WORMHOLE BRIDGE: Solana → Polygon**\n\n"
+            f"**Steps:**\n"
+            f"1. Send SOL to your Solana address below\n"
+            f"2. Bot will bridge automatically\n"
+            f"3. Receive USDC on Polygon (~5-10 min)\n\n"
+            f"**Your Solana Address (copyable):**\n"
+            f"`{user['solana_public_key']}`\n\n"
+            f"**Bridge Fees:**\n"
+            f"• Relayer: {fees['base_relayer_fee_sol']:.4f} SOL\n"
+            f"• Gas: ~{fees['solana_priority_fee_sol']:.4f} SOL\n"
+            f"• **Total: {fees['total_estimated_cost_sol']:.4f} SOL**\n\n"
+            f"**Example:** Send 1 SOL → Get ~$15 USDC on Polygon\n"
+            f"(minus ~0.055 SOL in fees)\n\n"
+            f"📝 Reply with the amount in SOL to bridge.\n"
+            f"(e.g., `1` for 1 SOL, `2.5` for 2.5 SOL)"
+        )
+    
+    @staticmethod
+    async def bridge_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """
+        /bridge-status [bridge_id] - Check bridge transaction status.
+        """
+        
+        user_id = update.effective_user.id
+        args = update.message.text.split()
+        
+        if len(args) < 2:
+            # Show recent bridges
+            history = await wormhole_bridge.get_bridge_history(user_id, limit=5)
+            
+            if not history:
+                await update.message.reply_text("No bridge history found. Use /bridge to start.")
+                return
+            
+            message = "📋 **Your Recent Bridges:**\n\n"
+            for i, b in enumerate(history, 1):
+                message += (
+                    f"{i}. {b['from'].upper()} → {b['to'].upper()}\n"
+                    f"   Amount: {b['amount_sol']:.4f} SOL\n"
+                    f"   Status: {b['status']}\n"
+                    f"   ID: `{b['bridge_id'][:12]}`\n\n"
+                )
+            
+            message += "Use `/bridge-status [id]` to check a specific bridge."
+            await update.message.reply_text(message)
+        else:
+            # Check specific bridge
+            bridge_id = args[1]
+            status = await wormhole_bridge.poll_bridge_status(bridge_id)
+            
+            status_emoji = {
+                'pending_signature': '⏳',
+                'submitted': '📤',
+                'attesting': '🔐',
+                'attested': '✅',
+                'completing': '🔄',
+                'completed': '🎉',
+                'failed': '❌',
+            }
+            
+            await update.message.reply_text(
+                f"{status_emoji.get(status['status'], '❓')} **Bridge Status**\n\n"
+                f"Bridge ID: `{bridge_id}`\n"
+                f"Status: {status['status']}\n"
+                f"Guardian Confirmations: {status.get('guardian_confirmations', 0)}/13\n\n"
+                f"⏱️ Estimated time: 5-10 minutes total"
+            )
     
     @staticmethod
     async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -266,6 +359,8 @@ def setup_bot(token: str):
     application.add_handler(CommandHandler("browse", BotHandlers.browse))
     application.add_handler(CommandHandler("balance", BotHandlers.balance))
     application.add_handler(CommandHandler("trade", BotHandlers.trade))
+    application.add_handler(CommandHandler("bridge", BotHandlers.bridge))
+    application.add_handler(CommandHandler("bridge-status", BotHandlers.bridge_status))
     application.add_handler(CommandHandler("performance", BotHandlers.performance))
     application.add_handler(CommandHandler("help", BotHandlers.help_command))
     application.add_handler(MessageHandler(filters.COMMAND, BotHandlers.unknown))

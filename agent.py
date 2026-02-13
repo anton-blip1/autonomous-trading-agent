@@ -29,7 +29,7 @@ from config import (
 from market_scanner import scanner
 from database import db
 from blockchain_integration import SolanaWallet, PolygonWallet, TradeExecutor, executor
-from wormhole_bridge import bridge
+from wormhole_bridge_production import wormhole_bridge
 
 
 class AutonomousAgent:
